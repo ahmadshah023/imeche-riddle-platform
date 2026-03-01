@@ -64,6 +64,7 @@ export type TeamProgress = {
   wrongStreak: number;
   penaltyUntil?: string; // ISO time until which team is locked from answering
   lastUpdatedAt: string;
+  completedAt?: string; // ISO timestamp when team finished all riddles
 };
 
 export type CompetitionLogEntry = {

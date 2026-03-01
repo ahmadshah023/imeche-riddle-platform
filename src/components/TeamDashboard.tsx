@@ -90,6 +90,7 @@ export function TeamDashboard({ competition, team, user }: Props) {
         wrongStreak: data.wrongStreak ?? 0,
         penaltyUntil: data.penaltyUntil,
         lastUpdatedAt: data.lastUpdatedAt ?? new Date().toISOString(),
+        completedAt: data.completedAt,
       });
     });
 
@@ -223,6 +224,35 @@ export function TeamDashboard({ competition, team, user }: Props) {
     return Math.max(0, Math.floor(diff / 1000));
   }, [competition, now]);
 
+  // When team progress document is marked as completed, show modal for all members
+  useEffect(() => {
+    if (!progress?.completedAt || !competition.startTime) return;
+
+    const startTime = competition.startTime as any;
+    let start: number;
+    if (startTime instanceof Timestamp) {
+      start = startTime.toMillis();
+    } else if (typeof startTime === "string") {
+      start = new Date(startTime).getTime();
+    } else if (startTime?.toDate && typeof startTime.toDate === "function") {
+      start = startTime.toDate().getTime();
+    } else if (startTime?.seconds && typeof startTime.seconds === "number") {
+      start = startTime.seconds * 1000;
+    } else {
+      return;
+    }
+
+    const completedAtMs = new Date(progress.completedAt).getTime();
+    if (Number.isNaN(start) || Number.isNaN(completedAtMs)) return;
+
+    const totalTimeSeconds = Math.max(
+      0,
+      Math.floor((completedAtMs - start) / 1000),
+    );
+    setCompletionTime(totalTimeSeconds);
+    setShowCompletionModal(true);
+  }, [progress?.completedAt, competition.startTime]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!progress || !activeRiddle || !activePart) return;
@@ -272,12 +302,17 @@ export function TeamDashboard({ competition, team, user }: Props) {
         completedAt: new Date().toISOString(),
       };
 
+      // Determine next indices after this answer
       let nextRiddleIndex = progress.currentRiddleIndex;
       let nextPartIndex = progress.currentPartIndex + 1;
 
-      const isLastPart =
-        nextPartIndex >= (activeRiddle.parts?.length ?? 0);
-      if (isLastPart) {
+      const totalPartsForCurrent =
+        activeRiddle.parts?.length ?? 0;
+      const isLastPartOfCurrent =
+        progress.currentPartIndex === totalPartsForCurrent - 1;
+
+      if (isLastPartOfCurrent) {
+        // Move to next riddle (or stay on last index)
         nextRiddleIndex = Math.min(
           progress.currentRiddleIndex + 1,
           progress.riddleOrder.length - 1,
@@ -287,14 +322,11 @@ export function TeamDashboard({ competition, team, user }: Props) {
 
       updated.completedParts = completedParts;
 
-      // Check if all riddles and all of their parts are completed for this team
-      const allCompleted = progress.riddleOrder.every((rid) => {
-        const riddleDef = competitionRiddles.find((r) => r.id === rid);
-        if (!riddleDef) return false;
-        const partsInfo = completedParts[rid] ?? {};
-        return riddleDef.parts.every((_, idx) => !!partsInfo[idx]?.completedAt);
-      });
-      const isAllComplete = allCompleted;
+      // Team has truly finished only when they just answered
+      // the last part of the last riddle in their randomized order.
+      const isOnFinalRiddle =
+        progress.currentRiddleIndex === progress.riddleOrder.length - 1;
+      const isAllComplete = isOnFinalRiddle && isLastPartOfCurrent;
       updated.currentRiddleIndex = nextRiddleIndex;
       updated.currentPartIndex = nextPartIndex;
       updated.wrongStreak = 0;
@@ -312,30 +344,16 @@ export function TeamDashboard({ competition, team, user }: Props) {
         completedAt: new Date().toISOString(),
       });
 
-      // If all riddles completed, calculate total time and show modal
+      // If all riddles completed, stamp completion time for whole team
       if (isAllComplete && competition.startTime) {
-        let start: number;
-        const startTime = competition.startTime as any;
-        if (startTime instanceof Timestamp) {
-          start = startTime.toMillis();
-        } else if (typeof startTime === "string") {
-          start = new Date(startTime).getTime();
-        } else if (startTime?.toDate && typeof startTime.toDate === "function") {
-          start = startTime.toDate().getTime();
-        } else if (startTime?.seconds && typeof startTime.seconds === "number") {
-          start = startTime.seconds * 1000;
-        } else {
-          start = now.getTime();
-        }
-        const totalTimeSeconds = Math.floor((now.getTime() - start) / 1000);
-        setCompletionTime(totalTimeSeconds);
-        setShowCompletionModal(true);
+        const completedAtIso = new Date().toISOString();
+        (updated as any).completedAt = completedAtIso;
       }
 
       setFeedback(
         isAllComplete
           ? "Congratulations! You've completed all riddles!"
-          : isLastPart
+          : isLastPartOfCurrent
             ? "Riddle completed! Moving your team to the next challenge."
             : "Nice! Next part unlocked.",
       );
