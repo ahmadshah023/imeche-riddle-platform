@@ -63,6 +63,8 @@ type StandingRow = {
   teamName: string;
   competitionName: string;
   riddleLabel: string;
+  levelText: string;
+  prompt: string;
   scoreKey: string;
 };
 
@@ -255,22 +257,38 @@ export default function AdminPage() {
         const riddleId =
           data.riddleOrder?.[data.currentRiddleIndex ?? 0] ?? "";
         const riddle = competitionRiddles.find((r) => r.id === riddleId);
+
+        const ridIndex = data.currentRiddleIndex ?? 0;
+        const partIndex = data.currentPartIndex ?? 0;
+        const totalLevels =
+          (data.riddleOrder?.length as number | undefined) ??
+          competitionRiddles.length;
+
         let label = "Not started";
-        let ridIndex = data.currentRiddleIndex ?? 0;
-        let partIndex = data.currentPartIndex ?? 0;
+        let levelText = "-";
+        let prompt = "";
         let tsNum = Number.MAX_SAFE_INTEGER;
+
         if (riddle) {
-          const part = (data.currentPartIndex ?? 0) + 1;
-          label = `Riddle #${riddle.numericId} Part ${part}`;
+          const partOneBased = partIndex + 1;
+          label = `Riddle #${riddle.numericId} Part ${partOneBased}`;
+          levelText = `${ridIndex + 1}.${partOneBased} / ${totalLevels}`;
+          const activePart =
+            riddle.parts?.[partIndex] ?? riddle.parts?.[0];
+          prompt = activePart?.prompt ?? riddle.description ?? "";
+
           const tsIso = data.lastUpdatedAt ?? new Date().toISOString();
           const parsed = new Date(tsIso).getTime();
           tsNum = Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
         }
+
         rows.push({
           teamId: team.id,
           teamName: team.name,
           competitionName: team.competitionName ?? "",
           riddleLabel: label,
+          levelText,
+          prompt,
           // store sort fields inside scoreKey for compatibility
           scoreKey: JSON.stringify({
             ridIndex,
@@ -1149,41 +1167,40 @@ export default function AdminPage() {
                     Standings (by team)
                   </h2>
                 </div>
-                <div className="max-h-[360px] overflow-y-auto">
-                  <table className="min-w-full border-separate border-spacing-y-1 text-xs">
-                    <thead className="text-[11px] uppercase tracking-wide text-slate-400">
-                      <tr>
-                        <th className="text-left">Rank</th>
-                        <th className="text-left">Team</th>
-                        <th className="text-left">Progress</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {standings.map((s, idx) => (
-                        <tr key={s.teamId}>
-                          <td className="rounded-l-xl bg-slate-900/80 px-2 py-1.5">
-                            #{idx + 1}
-                          </td>
-                          <td className="bg-slate-900/80 px-2 py-1.5">
+                <div className="max-h-[360px] space-y-1 overflow-y-auto">
+                  {standings.map((s, idx) => (
+                    <div
+                      key={s.teamId}
+                      className="flex items-start gap-2 rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-xs"
+                    >
+                      <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[11px] font-semibold text-emerald-300">
+                        {idx + 1}
+                      </div>
+                      <div className="flex flex-1 flex-col gap-0.5">
+                        <div className="flex flex-wrap items-center justify-between gap-1">
+                          <span className="font-semibold text-slate-100">
                             {s.teamName}
-                          </td>
-                          <td className="rounded-r-xl bg-slate-900/80 px-2 py-1.5">
-                            {s.riddleLabel}
-                          </td>
-                        </tr>
-                      ))}
-                      {standings.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={3}
-                            className="px-2 py-3 text-center text-[11px] text-slate-400"
-                          >
-                            No progress yet for this competition.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                          </span>
+                          <span className="rounded-full bg-slate-800/80 px-2 py-0.5 text-[10px] text-slate-300">
+                            Level {s.levelText}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300">
+                          {s.riddleLabel}
+                        </p>
+                        {s.prompt && (
+                          <p className="mt-0.5 line-clamp-2 text-[10px] text-slate-400">
+                            {s.prompt}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {standings.length === 0 && (
+                    <p className="px-2 py-3 text-center text-[11px] text-slate-400">
+                      No progress yet for this competition.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
