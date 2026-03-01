@@ -637,8 +637,26 @@ export function TeamDashboard({ competition, team, user }: Props) {
                 </p>
 
                 <div className="w-full space-y-3 rounded-2xl border border-slate-700 bg-slate-900/50 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Team Name</span>
+                    <span className="text-sm font-semibold text-slate-100">
+                      {team.name}
+                    </span>
+                  </div>
+
+                  <div className="border-t border-slate-700 pt-3">
+                    <span className="mb-2 block text-xs text-slate-400">Team Members</span>
+                    <div className="space-y-1">
+                      {team.members.map((member) => (
+                        <div key={member.userId} className="text-sm text-slate-200">
+                          {member.name}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {rankInfo && (
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between border-t border-slate-700 pt-3">
                       <span className="text-xs text-slate-400">Your Rank</span>
                       <span className="text-lg font-bold text-emerald-300">
                         #{rankInfo.rank} / {rankInfo.total}
@@ -655,6 +673,12 @@ export function TeamDashboard({ competition, team, user }: Props) {
                       </span>
                     </div>
                   )}
+                </div>
+
+                <div className="mt-4 w-full rounded-xl border border-amber-400/50 bg-amber-500/10 p-3">
+                  <p className="text-xs font-medium text-amber-200">
+                    📸 Take a screenshot of this popup and send to admin for verification
+                  </p>
                 </div>
 
                 <button

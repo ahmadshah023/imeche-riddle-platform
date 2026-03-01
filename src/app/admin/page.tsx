@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -66,6 +67,7 @@ type StandingRow = {
   levelText: string;
   prompt: string;
   scoreKey: string;
+  memberNames: string[];
 };
 
 type LogRow = {
@@ -90,6 +92,7 @@ export default function AdminPage() {
     null,
   );
   const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [fullTeams, setFullTeams] = useState<CompetitionTeam[]>([]);
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [queries, setQueries] = useState<QueryRow[]>([]);
@@ -228,6 +231,7 @@ export default function AdminPage() {
       });
 
       setTeams(teamsRows);
+      setFullTeams(teamDocs);
     }
 
     loadTeamsAndProgress().catch(() => {});
@@ -254,6 +258,11 @@ export default function AdminPage() {
           (t) => `${data.competitionId}_${t.id}` === d.id,
         );
         if (!team) return;
+        
+        // Find full team data to get member names
+        const fullTeam = fullTeams.find((t) => t.id === team.id);
+        const memberNames = fullTeam?.members?.map((m) => m.name) ?? [];
+        
         const riddleId =
           data.riddleOrder?.[data.currentRiddleIndex ?? 0] ?? "";
         const riddle = competitionRiddles.find((r) => r.id === riddleId);
@@ -289,13 +298,14 @@ export default function AdminPage() {
           riddleLabel: label,
           levelText,
           prompt,
+          memberNames,
           // store sort fields inside scoreKey for compatibility
           scoreKey: JSON.stringify({
             ridIndex,
             partIndex,
             tsNum,
           }),
-        } as any);
+        });
       });
       // Sort by riddle index desc, part index desc, timestamp asc (earlier win)
       rows.sort((a, b) => {
@@ -316,7 +326,7 @@ export default function AdminPage() {
       setStandings(rows);
     });
     return () => unsub();
-  }, [user?.isAdmin, selectedCompetitionId, teams, competitions]);
+  }, [user?.isAdmin, selectedCompetitionId, teams, fullTeams, competitions]);
 
   // Real-time logs for selected competition
   useEffect(() => {
@@ -1188,6 +1198,11 @@ export default function AdminPage() {
                         <p className="text-[11px] text-slate-300">
                           {s.riddleLabel}
                         </p>
+                        {s.memberNames && s.memberNames.length > 0 && (
+                          <p className="mt-1 text-[10px] text-slate-400">
+                            Members: {s.memberNames.join(", ")}
+                          </p>
+                        )}
                         {s.prompt && (
                           <p className="mt-0.5 line-clamp-2 text-[10px] text-slate-400">
                             {s.prompt}
