@@ -256,27 +256,45 @@ export default function AdminPage() {
           data.riddleOrder?.[data.currentRiddleIndex ?? 0] ?? "";
         const riddle = competitionRiddles.find((r) => r.id === riddleId);
         let label = "Not started";
-        let scoreKey = "0_0_9999999999999";
+        let ridIndex = data.currentRiddleIndex ?? 0;
+        let partIndex = data.currentPartIndex ?? 0;
+        let tsNum = Number.MAX_SAFE_INTEGER;
         if (riddle) {
           const part = (data.currentPartIndex ?? 0) + 1;
           label = `Riddle #${riddle.numericId} Part ${part}`;
-          const ts = data.lastUpdatedAt ?? "9999-12-31T23:59:59.999Z";
-          const ridIndex = String(data.currentRiddleIndex ?? 0).padStart(
-            3,
-            "0",
-          );
-          const partIndex = String(data.currentPartIndex ?? 0).padStart(3, "0");
-          scoreKey = `${ridIndex}_${partIndex}_${ts}`;
+          const tsIso = data.lastUpdatedAt ?? new Date().toISOString();
+          const parsed = new Date(tsIso).getTime();
+          tsNum = Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
         }
         rows.push({
           teamId: team.id,
           teamName: team.name,
           competitionName: team.competitionName ?? "",
           riddleLabel: label,
-          scoreKey,
-        });
+          // store sort fields inside scoreKey for compatibility
+          scoreKey: JSON.stringify({
+            ridIndex,
+            partIndex,
+            tsNum,
+          }),
+        } as any);
       });
-      rows.sort((a, b) => (a.scoreKey > b.scoreKey ? -1 : 1));
+      // Sort by riddle index desc, part index desc, timestamp asc (earlier win)
+      rows.sort((a, b) => {
+        const as = JSON.parse(a.scoreKey) as {
+          ridIndex: number;
+          partIndex: number;
+          tsNum: number;
+        };
+        const bs = JSON.parse(b.scoreKey) as {
+          ridIndex: number;
+          partIndex: number;
+          tsNum: number;
+        };
+        if (as.ridIndex !== bs.ridIndex) return bs.ridIndex - as.ridIndex;
+        if (as.partIndex !== bs.partIndex) return bs.partIndex - as.partIndex;
+        return as.tsNum - bs.tsNum;
+      });
       setStandings(rows);
     });
     return () => unsub();

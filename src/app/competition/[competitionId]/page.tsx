@@ -280,8 +280,8 @@ export default function CompetitionPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-slate-50">
-      <header className="flex items-center justify-between border-b border-slate-800/80 bg-slate-950/70 px-4 py-3 backdrop-blur">
-        <div className="flex items-center gap-2">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-slate-950/70 px-3 py-3 backdrop-blur">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-300">
             <Swords className="h-4 w-4" />
           </div>
@@ -295,8 +295,12 @@ export default function CompetitionPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {user.teamId && (
-            <NotificationsPanel user={user} competitionId={competition.id} teamId={membership?.teamId} />
+          {membership?.teamId && (
+            <NotificationsPanel
+              user={user}
+              competitionId={competition.id}
+              teamId={membership.teamId}
+            />
           )}
           <div className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-2 py-1 text-xs text-slate-200 sm:flex">
             <User className="h-3.5 w-3.5" />

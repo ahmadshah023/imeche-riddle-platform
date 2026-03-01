@@ -103,7 +103,7 @@ export function TeamDashboard({ competition, team, user }: Props) {
       where("competitionId", "==", competition.id),
     );
     const unsub = onSnapshot(q, (snap) => {
-      const rows: { teamId: string; scoreKey: string }[] = [];
+      const rows: { teamId: string; ridIndex: number; partIndex: number; ts: number }[] = [];
       const competitionRiddles =
         competition.customRiddles && competition.customRiddles.length > 0
           ? convertCustomRiddlesToRiddles(competition.customRiddles)
@@ -114,16 +114,22 @@ export function TeamDashboard({ competition, team, user }: Props) {
         const riddleId =
           data.riddleOrder?.[data.currentRiddleIndex ?? 0] ?? "";
         const riddle = competitionRiddles.find((r) => r.id === riddleId);
-        let scoreKey = "0_0_9999999999999";
-        if (riddle) {
-          const ts = data.lastUpdatedAt ?? "9999-12-31T23:59:59.999Z";
-          const ridIndex = String(data.currentRiddleIndex ?? 0).padStart(3, "0");
-          const partIndex = String(data.currentPartIndex ?? 0).padStart(3, "0");
-          scoreKey = `${ridIndex}_${partIndex}_${ts}`;
-        }
-        rows.push({ teamId: data.teamId, scoreKey });
+        if (!riddle) return;
+        const tsIso = data.lastUpdatedAt ?? new Date().toISOString();
+        const tsNum = new Date(tsIso).getTime();
+        rows.push({
+          teamId: data.teamId,
+          ridIndex: data.currentRiddleIndex ?? 0,
+          partIndex: data.currentPartIndex ?? 0,
+          ts: Number.isNaN(tsNum) ? Number.MAX_SAFE_INTEGER : tsNum,
+        });
       });
-      rows.sort((a, b) => (a.scoreKey > b.scoreKey ? -1 : 1));
+      // Sort by riddle index (desc), part index (desc), then time (asc – earlier wins)
+      rows.sort((a, b) => {
+        if (a.ridIndex !== b.ridIndex) return b.ridIndex - a.ridIndex;
+        if (a.partIndex !== b.partIndex) return b.partIndex - a.partIndex;
+        return a.ts - b.ts;
+      });
       const index = rows.findIndex((r) => r.teamId === team.id);
       if (index >= 0) {
         setRankInfo({ rank: index + 1, total: rows.length });
@@ -279,12 +285,16 @@ export function TeamDashboard({ competition, team, user }: Props) {
         nextPartIndex = 0;
       }
 
-      // Check if all riddles are completed
-      const isAllComplete = nextRiddleIndex >= progress.riddleOrder.length - 1 &&
-        nextPartIndex === 0 &&
-        isLastPart;
-
       updated.completedParts = completedParts;
+
+      // Check if all riddles and all of their parts are completed for this team
+      const allCompleted = progress.riddleOrder.every((rid) => {
+        const riddleDef = competitionRiddles.find((r) => r.id === rid);
+        if (!riddleDef) return false;
+        const partsInfo = completedParts[rid] ?? {};
+        return riddleDef.parts.every((_, idx) => !!partsInfo[idx]?.completedAt);
+      });
+      const isAllComplete = allCompleted;
       updated.currentRiddleIndex = nextRiddleIndex;
       updated.currentPartIndex = nextPartIndex;
       updated.wrongStreak = 0;
@@ -367,7 +377,7 @@ export function TeamDashboard({ competition, team, user }: Props) {
   }
 
   return (
-    <div className="flex w-full max-w-6xl flex-col gap-4">
+    <div className="flex w-full max-w-6xl flex-col gap-4 px-2 md:px-0">
       {/* View Toggle */}
       <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/80 p-1">
         <button
