@@ -83,7 +83,7 @@ export function TeamSetup({ user, onTeamAssigned }: Props) {
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
           placeholder="Team Brabers Ninjas"
-          className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-50 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+          className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-base text-slate-50 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
         />
         {error && <p className="text-xs text-rose-400">{error}</p>}
         <button

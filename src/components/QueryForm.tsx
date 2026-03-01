@@ -69,7 +69,7 @@ export function QueryForm({ user, competitionId, teamId, teamName }: Props) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Describe the riddle, your attempt, and what is confusing..."
-          className="min-h-[70px] w-full resize-none rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-50 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+          className="min-h-[70px] w-full resize-none rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-base text-slate-50 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
         />
         <button
           type="submit"
