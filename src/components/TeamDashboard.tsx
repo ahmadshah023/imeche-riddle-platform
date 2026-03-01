@@ -333,6 +333,12 @@ export function TeamDashboard({ competition, team, user }: Props) {
       // Remove penalty field if it exists (use deleteField to properly clear it)
       (updated as any).penaltyUntil = deleteField();
 
+      // If all riddles completed, stamp completion time for whole team
+      if (isAllComplete) {
+        const completedAtIso = new Date().toISOString();
+        (updated as any).completedAt = completedAtIso;
+      }
+
       await setDoc(ref, updated, { merge: true });
 
       // Log entry for admin logs/standings
@@ -343,12 +349,6 @@ export function TeamDashboard({ competition, team, user }: Props) {
         partIndex: progress.currentPartIndex,
         completedAt: new Date().toISOString(),
       });
-
-      // If all riddles completed, stamp completion time for whole team
-      if (isAllComplete && competition.startTime) {
-        const completedAtIso = new Date().toISOString();
-        (updated as any).completedAt = completedAtIso;
-      }
 
       setFeedback(
         isAllComplete
@@ -504,7 +504,7 @@ export function TeamDashboard({ competition, team, user }: Props) {
                   ? "Submissions are disabled until the competition is running..."
                   : "Type your team’s answer..."
             }
-            className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-3 py-2 text-sm text-slate-50 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-800"
+            className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-3 py-2 text-base text-slate-50 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-800"
           />
           <button
             type="submit"
